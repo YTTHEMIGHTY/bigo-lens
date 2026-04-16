@@ -1,0 +1,158 @@
+{
+  "name": "bigo-lens",
+  "displayName": "BigO Lens",
+  "description": "🔍 Inline Big-O time & space complexity annotations for your functions. Pure AST analysis — no AI, no API keys, fully offline.",
+  "version": "1.0.0",
+  "publisher": "YTTHEMIGHTY",
+  "author": {
+    "name": "Yashvardhan Thanvi",
+    "url": "https://github.com/YTTHEMIGHTY"
+  },
+  "license": "MIT",
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YTTHEMIGHTY/bigo-lens.git"
+  },
+  "homepage": "https://github.com/YTTHEMIGHTY/bigo-lens#readme",
+  "bugs": {
+    "url": "https://github.com/YTTHEMIGHTY/bigo-lens/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Education",
+    "Other"
+  ],
+  "keywords": [
+    "big-o",
+    "complexity",
+    "time-complexity",
+    "space-complexity",
+    "algorithm",
+    "data-structure",
+    "leetcode",
+    "dsa",
+    "analysis",
+    "performance",
+    "inlay-hints",
+    "typescript",
+    "javascript"
+  ],
+  "galleryBanner": {
+    "color": "#0D1117",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:typescriptreact",
+    "onLanguage:javascriptreact"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "bigoLens.analyzeFile",
+        "title": "BigO Lens: Analyze Current File",
+        "icon": "$(search)"
+      },
+      {
+        "command": "bigoLens.exportReport",
+        "title": "BigO Lens: Export Complexity Report"
+      },
+      {
+        "command": "bigoLens.toggleInlayHints",
+        "title": "BigO Lens: Toggle Inline Annotations"
+      }
+    ],
+    "configuration": {
+      "title": "BigO Lens",
+      "properties": {
+        "bigoLens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable BigO Lens annotations"
+        },
+        "bigoLens.showInlayHints": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline Big-O annotations after function signatures"
+        },
+        "bigoLens.showCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Analyze Complexity' CodeLens above functions"
+        },
+        "bigoLens.showDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show warning diagnostics for high-complexity code"
+        },
+        "bigoLens.complexityThreshold": {
+          "type": "string",
+          "default": "O(n^2)",
+          "enum": [
+            "O(n)",
+            "O(n log n)",
+            "O(n^2)",
+            "O(n^3)",
+            "O(2^n)"
+          ],
+          "description": "Minimum complexity level to trigger warnings"
+        },
+        "bigoLens.showOptimizationHints": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show optimization suggestions for high-complexity code"
+        },
+        "bigoLens.showPatternLabels": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show detected algorithmic pattern labels"
+        },
+        "bigoLens.showLeetCodeLink": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show LeetCode problem link when function name matches pattern"
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "bigoLens.analyzeFile",
+          "group": "bigoLens",
+          "when": "editorLangId == typescript || editorLangId == javascript || editorLangId == typescriptreact || editorLangId == javascriptreact"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "lint": "eslint src",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --coverage",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.0.0",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.9",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "typescript": "^5.7.0"
+  }
+}
