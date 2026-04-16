@@ -2,7 +2,7 @@
   "name": "bigo-lens",
   "displayName": "BigO Lens",
   "description": "🔍 Inline Big-O time & space complexity annotations for your functions. Pure AST analysis — no AI, no API keys, fully offline.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "YTTHEMIGHTY",
   "author": {
     "name": "Yashvardhan Thanvi",
