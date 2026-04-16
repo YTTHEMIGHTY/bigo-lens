@@ -8,6 +8,7 @@
 
 **See your algorithm's complexity *as you write it*. No AI, no API keys, fully offline.**
 
+
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/YTTHEMIGHTY.bigo-lens?label=VS%20Code%20Marketplace&logo=visualstudiocode&style=for-the-badge&color=0078d4)](https://marketplace.visualstudio.com/items?itemName=YTTHEMIGHTY.bigo-lens)
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/YTTHEMIGHTY.bigo-lens?style=for-the-badge&color=4CAF50)](https://marketplace.visualstudio.com/items?itemName=YTTHEMIGHTY.bigo-lens)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
