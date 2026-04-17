@@ -211,7 +211,8 @@ function analyzeFunctionNode(
   }
 
   // Walk the AST
-  walkNode(node, 0, analysis, functionName, sourceFile);
+  const localFunctions = new Set<string>();
+  walkNode(node, 0, analysis, functionName, sourceFile, localFunctions);
 
   return analysis;
 }
@@ -221,8 +222,16 @@ function walkNode(
   currentLoopDepth: number,
   analysis: FunctionAnalysis,
   functionName: string,
-  sourceFile: ts.SourceFile
+  sourceFile: ts.SourceFile,
+  localFunctions: Set<string>
 ): void {
+  // Capture locally nested functions for inner DFS hoisting
+  if (ts.isFunctionDeclaration(node) && node.name) {
+    localFunctions.add(node.name.text);
+  } else if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))) {
+    localFunctions.add(node.name.text);
+  }
+
   // ── Loop detection ──────────────────────────────────────
   if (ts.isForStatement(node)) {
     const newDepth = currentLoopDepth + 1;
@@ -234,7 +243,7 @@ function walkNode(
     } else {
       analysis.explanations.push(`for loop at depth ${newDepth} (line ${getLine(node, sourceFile)})`);
     }
-    ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile));
+    ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile, localFunctions));
     return;
   }
 
@@ -249,7 +258,7 @@ function walkNode(
     } else {
       analysis.explanations.push(`${kind} loop at depth ${newDepth} (line ${getLine(node, sourceFile)})`);
     }
-    ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile));
+    ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile, localFunctions));
     return;
   }
 
@@ -258,7 +267,7 @@ function walkNode(
     analysis.loops.push({ depth: newDepth, kind: 'for-in', isHalving: false });
     analysis.maxLoopDepth = Math.max(analysis.maxLoopDepth, newDepth);
     analysis.explanations.push(`for...in loop at depth ${newDepth} (line ${getLine(node, sourceFile)})`);
-    ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile));
+    ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile, localFunctions));
     return;
   }
 
@@ -267,7 +276,7 @@ function walkNode(
     analysis.loops.push({ depth: newDepth, kind: 'for-of', isHalving: false });
     analysis.maxLoopDepth = Math.max(analysis.maxLoopDepth, newDepth);
     analysis.explanations.push(`for...of loop at depth ${newDepth} (line ${getLine(node, sourceFile)})`);
-    ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile));
+    ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile, localFunctions));
     return;
   }
 
@@ -275,12 +284,19 @@ function walkNode(
   if (ts.isCallExpression(node)) {
     const methodName = getCallMethodName(node);
 
-    if (methodName && ['forEach', 'map', 'filter', 'reduce', 'find', 'some', 'every', 'flatMap', 'findIndex'].includes(methodName)) {
+    const iterationMethods = [
+      'forEach', 'map', 'filter', 'reduce', 'reduceRight', 'find', 'some', 'every', 'flatMap', 'findIndex',
+      'indexOf', 'lastIndexOf', 'includes', 'join',
+      'substring', 'replace', 'replaceAll', 'match', 'matchAll', 'search', 'split', 'trim', 'trimStart', 'trimEnd',
+      'padStart', 'padEnd', 'startsWith', 'endsWith'
+    ];
+
+    if (methodName && iterationMethods.includes(methodName)) {
       const newDepth = currentLoopDepth + 1;
       analysis.loops.push({ depth: newDepth, kind: 'for-of', isHalving: false });
       analysis.maxLoopDepth = Math.max(analysis.maxLoopDepth, newDepth);
       analysis.explanations.push(`.${methodName}() iteration at depth ${newDepth} (line ${getLine(node, sourceFile)})`);
-      ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile));
+      ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile, localFunctions));
       return;
     }
 
@@ -302,10 +318,28 @@ function walkNode(
     if (methodName === 'splice') {
       analysis.hasSplice = true;
     }
+    if (methodName === 'push' || methodName === 'unshift') {
+      analysis.allocations.hasArray = true;
+      analysis.explanations.push(`.${methodName}() adds elements to array (line ${getLine(node, sourceFile)}) → O(n) space`);
+    }
+
+    // ── Full library O(N) allocators ──
+    const callNameFull = node.expression.getText(sourceFile);
+    if (
+      ['Object.keys', 'Object.values', 'Object.entries', 'Object.assign', 'Object.fromEntries', 'Array.from', 'Buffer.alloc'].includes(callNameFull)
+    ) {
+      const newDepth = currentLoopDepth + 1;
+      analysis.loops.push({ depth: newDepth, kind: 'for-of', isHalving: false });
+      analysis.allocations.hasArray = true;
+      analysis.maxLoopDepth = Math.max(analysis.maxLoopDepth, newDepth);
+      analysis.explanations.push(`${callNameFull}() iteration/allocation at depth ${newDepth} (line ${getLine(node, sourceFile)})`);
+      ts.forEachChild(node, child => walkNode(child, currentLoopDepth, analysis, functionName, sourceFile, localFunctions));
+      return;
+    }
 
     // ── Self-recursion detection ──
     const callName = getCallName(node);
-    if (callName === functionName) {
+    if (callName === functionName || (callName && localFunctions.has(callName))) {
       analysis.recursion.isSelfRecursive = true;
       analysis.recursion.recursiveCallCount++;
 
@@ -330,15 +364,25 @@ function walkNode(
   // ── Allocation detection ──
   if (ts.isNewExpression(node)) {
     const exprText = node.expression.getText(sourceFile);
-    if (exprText === 'Map') {
+    if (exprText === 'Map' || exprText === 'WeakMap') {
       analysis.allocations.hasMap = true;
-      analysis.explanations.push(`new Map() allocation (line ${getLine(node, sourceFile)}) → O(n) space`);
-    } else if (exprText === 'Set') {
+      analysis.explanations.push(`new ${exprText}() allocation (line ${getLine(node, sourceFile)}) → O(n) space`);
+    } else if (exprText === 'Set' || exprText === 'WeakSet') {
       analysis.allocations.hasSet = true;
-      analysis.explanations.push(`new Set() allocation (line ${getLine(node, sourceFile)}) → O(n) space`);
-    } else if (exprText === 'Array') {
+      analysis.explanations.push(`new ${exprText}() allocation (line ${getLine(node, sourceFile)}) → O(n) space`);
+    } else if (exprText === 'Array' || exprText.includes('Array') || exprText === 'Object') {
       analysis.allocations.hasArray = true;
-      analysis.explanations.push(`new Array() allocation (line ${getLine(node, sourceFile)}) → O(n) space`);
+      analysis.explanations.push(`new ${exprText}() allocation (line ${getLine(node, sourceFile)}) → O(n) space`);
+    }
+  }
+
+  // ── Graph / Tree Traversal Pointer Detection ──
+  if (ts.isPropertyAccessExpression(node)) {
+    const propName = node.name.text;
+    if (propName === 'left' || propName === 'right') {
+       if (analysis.recursion.isSelfRecursive) {
+         analysis.recursion.isDividing = true; // Maps standard DFS traversal bounds over recursive height
+       }
     }
   }
 
@@ -416,7 +460,7 @@ function walkNode(
   }
 
   // Recurse into children
-  ts.forEachChild(node, child => walkNode(child, currentLoopDepth, analysis, functionName, sourceFile));
+  ts.forEachChild(node, child => walkNode(child, currentLoopDepth, analysis, functionName, sourceFile, localFunctions));
 }
 
 // ─── Complexity Computation ──────────────────────────────────

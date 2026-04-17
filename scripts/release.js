@@ -81,14 +81,29 @@ async function run() {
   const newChangelogName = `${newVersionString}_${today}.md`;
   const newChangelogPath = path.join(CHANGELOG_DIR, newChangelogName);
 
-  const formattedNotes = `# ${newVersionString} — ${today}\n\n${unreleasedNotes}\n`;
+  const formattedNotes = `## [${newVersionString.replace('v', '')}] - ${today}\n\n${unreleasedNotes}\n\n`;
   
+  // Prepend to array
+  const rootChangelogPath = path.join(ROOT_DIR, 'CHANGELOG.md');
+  if (fs.existsSync(rootChangelogPath)) {
+    let rc = fs.readFileSync(rootChangelogPath, 'utf-8');
+    const splitIndex = rc.indexOf('## [');
+    if (splitIndex !== -1) {
+      rc = rc.slice(0, splitIndex) + formattedNotes + rc.slice(splitIndex);
+    } else {
+      rc += '\n' + formattedNotes;
+    }
+    fs.writeFileSync(rootChangelogPath, rc);
+    console.log(`✔ Prepended unreleased notes to root CHANGELOG.md`);
+  }
+
+  const snapshotNotes = `# ${newVersionString} — ${today}\n\n${unreleasedNotes}\n`;
   if (!fs.existsSync(CHANGELOG_DIR)) fs.mkdirSync(CHANGELOG_DIR);
-  fs.writeFileSync(newChangelogPath, formattedNotes);
+  fs.writeFileSync(newChangelogPath, snapshotNotes);
   
   // Wipe unreleased scratchpad
   fs.writeFileSync(UNRELEASED_FILE, '### ✨ Features\n- \n\n### 🐞 Bug Fixes\n- \n');
-  console.log(`✔ Migrated changelog to: changelogs/${newChangelogName}`);
+  console.log(`✔ Migrated changelog snapshot to: changelogs/${newChangelogName}`);
 
   // 6. Commit, Tag, Push
   const { action } = await prompts({
@@ -108,7 +123,7 @@ async function run() {
   }
 
   try {
-    execSync('git add package.json package-lock.json changelogs/*', { stdio: 'inherit' });
+    execSync('git add package.json package-lock.json CHANGELOG.md changelogs/*', { stdio: 'inherit' });
     execSync(`git commit -m "chore(release): ${newVersionString}"`, { stdio: 'inherit' });
     execSync(`git tag ${newVersionString}`, { stdio: 'inherit' });
     console.log(`✔ Committed and tagged as ${newVersionString}`);
