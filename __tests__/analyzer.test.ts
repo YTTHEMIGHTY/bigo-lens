@@ -344,5 +344,32 @@ describe('BigO Lens Analyzer', () => {
       expect(result.functions[0].functionName).toBe('double');
       expect(result.functions[0].time).toBe('O(n)');
     });
+
+    test('rotateArray_189 — sequential helper function calls should be O(n), not O(2^n) recursion', () => {
+      const code = `
+        function rotateArray_189(nums: number[], k: number): void {
+          if (!nums || nums.length < 2 || !k) return;
+          k = k % nums.length; 
+
+          const reverse = (start: number, end: number) => {
+            while (start < end) {
+              let temp = nums[start];
+              nums[start] = nums[end];
+              nums[end] = temp;
+              start++;
+              end--;
+            }
+          };
+
+          reverse(0, nums.length - 1);
+          reverse(0, k - 1);
+          reverse(k, nums.length - 1);
+        }
+      `;
+      const result = analyzeFunction(code, 'rotateArray_189');
+      expect(result).not.toBeNull();
+      expect(result!.time).toBe('O(n)');
+      expect(result!.space).toBe('O(1)');
+    });
   });
 });
