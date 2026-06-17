@@ -4,4 +4,5 @@
 - 
 
 ### 🐞 Bug Fixes
+- refactor git hook installer to CommonJS to prevent CI failures
 - 
