@@ -4,6 +4,7 @@
 - 
 
 ### 🐞 Bug Fixes
+- docs: add creator portfolio link to package, README, and report footer
 - chore: enable ES modules project-wide by declaring type module in package.json
 - refactor git hook installer to CommonJS to prevent CI failures
 - 

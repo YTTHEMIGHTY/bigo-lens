@@ -370,7 +370,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 ## 📄 License
 
-[MIT](LICENSE) © [Yashvardhan Thanvi](https://github.com/YTTHEMIGHTY)
+[MIT](LICENSE) © [Yashvardhan Thanvi](https://thanvi.dev)
 
 ---
 
