@@ -155,8 +155,7 @@ function humanize(camelCase: string): string {
 
 function toKebab(name: string): string {
   return name
-    .replace(/([A-Z])/g, '-$1')
     .toLowerCase()
-    .replace(/^-/, '')
-    .replace(/ /g, '-');
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }

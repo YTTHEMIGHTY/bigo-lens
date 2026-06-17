@@ -81,7 +81,7 @@ export function analyzeFile(sourceCode: string, filePath: string): FileAnalysis 
     const analysis = analyzeFunctionNode(fn.node, fn.name, sourceFile);
     const time = computeTimeComplexity(analysis);
     const space = computeSpaceComplexity(analysis);
-    const patterns = detectPatterns(sourceCode, analysis, fn.node, sourceFile);
+    const patterns = detectPatterns(fn.node.getText(sourceFile), analysis, fn.node, sourceFile);
     const optimizations = generateOptimizations(analysis, time);
     const leetcode = resolveLeetCode(fn.name);
 
@@ -319,8 +319,12 @@ function walkNode(
       analysis.hasSplice = true;
     }
     if (methodName === 'push' || methodName === 'unshift') {
-      analysis.allocations.hasArray = true;
-      analysis.explanations.push(`.${methodName}() adds elements to array (line ${getLine(node, sourceFile)}) → O(n) space`);
+      if (currentLoopDepth > 0) {
+        analysis.allocations.hasArray = true;
+        analysis.explanations.push(`.${methodName}() adds elements to array inside loop (line ${getLine(node, sourceFile)}) → O(n) space`);
+      } else {
+        analysis.explanations.push(`.${methodName}() adds element to array (line ${getLine(node, sourceFile)}) → O(1) space`);
+      }
     }
 
     // ── Full library O(N) allocators ──
@@ -333,7 +337,7 @@ function walkNode(
       analysis.allocations.hasArray = true;
       analysis.maxLoopDepth = Math.max(analysis.maxLoopDepth, newDepth);
       analysis.explanations.push(`${callNameFull}() iteration/allocation at depth ${newDepth} (line ${getLine(node, sourceFile)})`);
-      ts.forEachChild(node, child => walkNode(child, currentLoopDepth, analysis, functionName, sourceFile, localFunctions));
+      ts.forEachChild(node, child => walkNode(child, newDepth, analysis, functionName, sourceFile, localFunctions));
       return;
     }
 
@@ -685,6 +689,12 @@ function isCallRecursive(
   localFunctions: Set<string>
 ): boolean {
   if (callName === outerFunctionName) {
+    if (ts.isPropertyAccessExpression(callNode.expression)) {
+      const objText = callNode.expression.expression.getText();
+      if (objText !== 'this') {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -724,7 +734,10 @@ function detectHalvingLoop(node: ts.ForStatement): boolean {
     text.includes('/= 2') ||
     text.includes('>>= 1') ||
     text.includes('*= 2') ||
-    text.includes('<<= 1')
+    text.includes('<<= 1') ||
+    text.includes('/ 2') ||
+    text.includes('>> 1') ||
+    text.includes('Math.floor')
   ) {
     return true;
   }
@@ -752,7 +765,7 @@ function detectHalvingLoop(node: ts.ForStatement): boolean {
  * Detect if a while-loop halves its search space.
  */
 function detectHalvingWhile(node: ts.WhileStatement | ts.DoStatement): boolean {
-  const condition = ts.isWhileStatement(node) ? node.expression : node.expression;
+  const condition = node.expression;
   const condText = condition.getText();
 
   // Binary search pattern: while (left < right) or while (left <= right)

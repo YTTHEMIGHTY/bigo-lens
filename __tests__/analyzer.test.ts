@@ -284,6 +284,7 @@ describe('BigO Lens Analyzer', () => {
       expect(result!.leetcode).not.toBeNull();
       expect(result!.leetcode!.number).toBe(11);
       expect(result!.leetcode!.name).toBe('Container With Most Water');
+      expect(result!.leetcode!.url).toBe('https://leetcode.com/problems/container-with-most-water/');
       expect(result!.leetcode!.optimalTime).toBe('O(n)');
       expect(result!.leetcode!.optimalSpace).toBe('O(1)');
     });
@@ -369,6 +370,21 @@ describe('BigO Lens Analyzer', () => {
       const result = analyzeFunction(code, 'rotateArray_189');
       expect(result).not.toBeNull();
       expect(result!.time).toBe('O(n)');
+      expect(result!.space).toBe('O(1)');
+    });
+
+    test('push method clash in class should be O(1) time and O(1) space', () => {
+      const code = `
+        class MyStack {
+          private stack: any[] = [];
+          push(value: number): void {
+            this.stack.push(value);
+          }
+        }
+      `;
+      const result = analyzeFunction(code, 'push');
+      expect(result).not.toBeNull();
+      expect(result!.time).toBe('O(1)');
       expect(result!.space).toBe('O(1)');
     });
   });

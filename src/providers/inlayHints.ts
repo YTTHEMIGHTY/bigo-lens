@@ -48,8 +48,8 @@ export class BigOInlayHintsProvider implements vscode.InlayHintsProvider {
 
       // Find the end of function signature (after closing paren or before opening brace)
       let insertCol = lineText.length;
-      const braceIdx = lineText.indexOf('{');
-      const arrowIdx = lineText.indexOf('=>');
+      const braceIdx = lineText.lastIndexOf('{');
+      const arrowIdx = lineText.lastIndexOf('=>');
       if (braceIdx !== -1) {
         insertCol = braceIdx;
       } else if (arrowIdx !== -1) {
