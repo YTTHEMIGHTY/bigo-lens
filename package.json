@@ -139,7 +139,8 @@
     "test": "node --experimental-vm-modules node_modules/.bin/jest --coverage",
     "package": "vsce package",
     "publish": "vsce publish",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "postinstall": "node scripts/setup-git-hooks.js"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",
