@@ -339,7 +339,7 @@ function walkNode(
 
     // ── Self-recursion detection ──
     const callName = getCallName(node);
-    if (callName === functionName || (callName && localFunctions.has(callName))) {
+    if (callName && isCallRecursive(node, callName, functionName, localFunctions)) {
       analysis.recursion.isSelfRecursive = true;
       analysis.recursion.recursiveCallCount++;
 
@@ -646,6 +646,68 @@ function getCallName(node: ts.CallExpression): string | null {
     return node.expression.name.text;
   }
   return null;
+}
+
+/**
+ * Resolves the name of a function-like node (Declaration, Expression, Method, Arrow Function).
+ * Returns null if the function is anonymous and not bound to a variable identifier.
+ */
+function getFunctionNameOfNode(node: ts.Node): string | null {
+  if (ts.isFunctionDeclaration(node) && node.name) {
+    return node.name.text;
+  }
+  if (ts.isMethodDeclaration(node) && ts.isIdentifier(node.name)) {
+    return node.name.text;
+  }
+  if (ts.isFunctionExpression(node) && node.name) {
+    return node.name.text;
+  }
+  if (
+    (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) &&
+    node.parent &&
+    ts.isVariableDeclaration(node.parent) &&
+    ts.isIdentifier(node.parent.name)
+  ) {
+    return node.parent.name.text;
+  }
+  return null;
+}
+
+/**
+ * Determines whether a CallExpression represents a recursive call.
+ * Climbs the parent AST chain to verify if the call occurs within the definition
+ * of the called function (for local helper functions), or matches the outer function name.
+ */
+function isCallRecursive(
+  callNode: ts.CallExpression,
+  callName: string,
+  outerFunctionName: string,
+  localFunctions: Set<string>
+): boolean {
+  if (callName === outerFunctionName) {
+    return true;
+  }
+
+  if (!localFunctions.has(callName)) {
+    return false;
+  }
+
+  let current: ts.Node | undefined = callNode.parent;
+  while (current) {
+    if (
+      ts.isFunctionDeclaration(current) ||
+      ts.isMethodDeclaration(current) ||
+      ts.isFunctionExpression(current) ||
+      ts.isArrowFunction(current)
+    ) {
+      const name = getFunctionNameOfNode(current);
+      if (name === callName) {
+        return true;
+      }
+    }
+    current = current.parent;
+  }
+  return false;
 }
 
 /**
