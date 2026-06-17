@@ -4,4 +4,3 @@ dist/
 coverage/
 .vscode-test/
 .DS_Store
-extras/*
