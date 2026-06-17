@@ -4,5 +4,6 @@
 - 
 
 ### 🐞 Bug Fixes
+- chore: enable ES modules project-wide by declaring type module in package.json
 - refactor git hook installer to CommonJS to prevent CI failures
 - 

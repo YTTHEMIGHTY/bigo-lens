@@ -1,14 +1,19 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
 
-const gitHooksDir = path.join(__dirname, '..', '.git', 'hooks');
+const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.resolve(__dirname, '..');
+
+const gitHooksDir = path.join(ROOT_DIR, '.git', 'hooks');
 const postCommitHookPath = path.join(gitHooksDir, 'post-commit');
 
 const hookContent = `#!/usr/bin/env node
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 
 // Prevent infinite recursion when amending
 if (process.env.AMENDING_CHANGELOG === 'true') {
