@@ -3,10 +3,11 @@
   "displayName": "BigO Lens",
   "description": "🔍 Inline Big-O time & space complexity annotations for your functions. Pure AST analysis — no AI, no API keys, fully offline.",
   "version": "1.2.1",
+  "type": "module",
   "publisher": "YTTHEMIGHTY",
   "author": {
     "name": "Yashvardhan Thanvi",
-    "url": "https://github.com/YTTHEMIGHTY"
+    "url": "https://thanvi.dev"
   },
   "license": "MIT",
   "icon": "resources/icon.png",
@@ -139,7 +140,8 @@
     "test": "node --experimental-vm-modules node_modules/.bin/jest --coverage",
     "package": "vsce package",
     "publish": "vsce publish",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "postinstall": "node scripts/setup-git-hooks.js"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",
