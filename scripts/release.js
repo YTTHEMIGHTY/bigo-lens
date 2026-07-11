@@ -14,6 +14,49 @@ const UNRELEASED_FILE = path.join(CHANGELOG_DIR, 'unreleased.md');
 async function run() {
   console.log('\n🚢  BigO Lens Release Helper\n');
 
+  // 0. Check if we are on the main branch
+  try {
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+    if (branch !== 'main') {
+      console.warn(`⚠️  Warning: You are on branch '${branch}'. Releases should normally be done on 'main'.`);
+      const res = await prompts({
+        type: 'confirm',
+        name: 'proceed',
+        message: 'Are you sure you want to proceed with release on this branch?',
+        initial: false
+      });
+      if (!res.proceed) process.exit(0);
+    }
+  } catch (e) {}
+
+  // 0.5 Sync package.json with latest git tag to prevent release desyncs
+  try {
+    const latestTag = execSync('git describe --tags --abbrev=0', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    if (latestTag.startsWith('v')) {
+      const tagVersion = latestTag.slice(1);
+      const pkgPath = path.join(ROOT_DIR, 'package.json');
+      const currentPkgVersion = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')).version;
+      
+      const compareSemver = (a, b) => {
+        const pa = a.split('.').map(Number);
+        const pb = b.split('.').map(Number);
+        for (let i = 0; i < 3; i++) {
+          if (pa[i] > pb[i]) return 1;
+          if (pb[i] > pa[i]) return -1;
+        }
+        return 0;
+      };
+
+      if (compareSemver(tagVersion, currentPkgVersion) === 1) {
+        console.log(`\n🔄 Syncing package.json (${currentPkgVersion}) -> latest git tag (${latestTag})...`);
+        execSync(`npm version ${tagVersion} --no-git-tag-version --allow-same-version`, { stdio: 'ignore' });
+        console.log(`✔ Synchronized successfully!`);
+      }
+    }
+  } catch (e) {
+    // If there are no tags, git describe throws, which is fine to ignore
+  }
+
   // 1. Check if git is clean
   try {
     const status = execSync('git status --porcelain', { encoding: 'utf-8' });
@@ -74,6 +117,19 @@ async function run() {
   console.log(`\n📦 Bumping version...`);
   // using --no-git-tag-version so we can commit the changelog files simultaneously
   const newVersionString = execSync(`npm version ${bump} --no-git-tag-version`, { encoding: 'utf-8' }).trim();
+  
+  // Guard: Check if tag already exists to prevent desync failures
+  try {
+    const existingTags = execSync('git tag', { encoding: 'utf-8' }).split('\n');
+    if (existingTags.includes(newVersionString)) {
+      console.error(`\n❌ Error: The tag '${newVersionString}' already exists in this repository!`);
+      console.error(`This usually means your package.json version is out of sync with your Git tags.`);
+      console.error(`Undoing package.json bump...`);
+      execSync('git checkout package.json package-lock.json', { stdio: 'ignore' });
+      process.exit(1);
+    }
+  } catch (e) {}
+
   console.log(`✔ Version bumped to ${newVersionString}`);
 
   // 5. Structure changelog
