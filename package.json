@@ -53,7 +53,7 @@
     "onLanguage:typescriptreact",
     "onLanguage:javascriptreact"
   ],
-  "main": "./dist/extension.js",
+  "main": "./dist/extension.cjs",
   "contributes": {
     "commands": [
       {
