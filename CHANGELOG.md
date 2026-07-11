@@ -5,6 +5,16 @@ All notable changes to **BigO Lens** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-07-11
+
+### ✨ Features
+- Add `.vscode/launch.json` for local Extension Development Host debugging
+
+### 🐞 Bug Fixes
+- chore: sync package versions to v1.2.2 to fix release desync
+- chore: clean up unreleased changelog
+- Fix extension activation failure by compiling bundle to `.cjs` to resolve `type: module` conflict
+
 ## [1.2.1] - 2026-06-17
 
 ### ✨ Features
