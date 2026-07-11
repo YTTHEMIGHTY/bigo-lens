@@ -5,6 +5,16 @@ All notable changes to **BigO Lens** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-07-11
+
+### ✨ Features
+- auto-sync package.json with latest git tag in release script
+- scripts: `release.js` now auto-syncs `package.json` with the latest git tag if they drift out of sync
+
+### 🐞 Bug Fixes
+- ci: automate github releases
+-
+
 ## [1.2.3] - 2026-07-11
 
 ### ✨ Features
